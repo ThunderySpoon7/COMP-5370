@@ -3,6 +3,7 @@ import sys
 ZERO_BYTE = 48
 ONE_BYTE = 49
 
+# Read a two character begin map sequence '(<' from the front of the input string.
 def parse_begin(_input_bytes):
     res = _input_bytes
     if (_input_bytes.startswith(b'(<')):
@@ -15,6 +16,7 @@ def parse_begin(_input_bytes):
                 exit(66)
     return res
 
+# Parse and convert base-10 value from two's compliment binary string
 def parse_num(v:bytes):
     res = 0
     try:
@@ -23,6 +25,8 @@ def parse_num(v:bytes):
         print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
         exit(66)
 
+# Process value v as a num, simple string, or complex string. 
+# Throws error if incorrectly formatted.
 def process_val(v:bytes):
     if (v.startswith(b' ') or v.endswith(b' ')):
         # FIXME -- Print error message
@@ -37,7 +41,7 @@ def process_val(v:bytes):
 
     # Parse complex string
 
-
+# Parses key/value pair from input bytes string
 def parse_kv(_input_bytes:bytes):
     res = _input_bytes
     if res[:1].isalpha():
@@ -71,9 +75,7 @@ def parse_kv(_input_bytes:bytes):
 
         val = process_val(val)
 
-
-            
-
+# Parses a ',' delimiter separating two key/value pairs
 def parse_delim(_input_bytes):
     res = _input_bytes
     if (_input_bytes.startswith(b',')):
