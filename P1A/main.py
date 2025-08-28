@@ -1,0 +1,159 @@
+import sys
+
+ZERO_BYTE = 48
+ONE_BYTE = 49
+
+def parse_begin(_input_bytes):
+    res = _input_bytes
+    if (_input_bytes.startswith(b'(<')):
+            res = _input_bytes.removeprefix(b'(<')
+            print('begin-map')
+
+            # Check after beginning of map
+            if (not _input_bytes[:1].isalpha()) or (not _input_bytes.startswith(b'(<')):
+                print('ERROR -- Unexpected character found after map start sequence -->\'(<' + _input_bytes[:10], file=sys.stderr)
+                exit(66)
+    return res
+
+def parse_num(v:bytes):
+    res = 0
+    try:
+        return str(int(v.decode(), 2) - (1 << len(v) if v[0] == ONE_BYTE else 0)).encode()
+    except ValueError:
+        print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
+        exit(66)
+
+def process_val(v:bytes):
+    if (v.startswith(b' ') or v.endswith(b' ')):
+        # FIXME -- Print error message
+        exit(66)
+
+    res = None
+    # Parse num
+    if (v.isdigit()):
+        return parse_num(v)
+
+    # Parse simple string
+
+    # Parse complex string
+
+
+def parse_kv(_input_bytes:bytes):
+    res = _input_bytes
+    if res[:1].isalpha():
+        try:
+            colon_idx = res.index(b':')
+        except ValueError:
+            # FIXME -- Add error message
+            exit(66)
+            
+        key = res[:colon_idx]
+        res = res.removeprefix(res[:(colon_idx+1)])
+
+        if not (key.islower() and key.isalpha()):
+            print('ERROR -- Keys must only contain lowercase ascii letters a-z', file=sys.stderr)
+            exit(66)
+
+        val_end_pos = None
+        if (b',' in res) and (b'>)' in res):
+            val_end_pos = min(res.index(b','), res.index(b'>)'))
+        elif (b',' in res):
+            val_end_pos = res.index(b',')
+        elif (b'>)' in res):
+            val_end_pos = res.index(b'>)')
+        else:
+            # FIXME -- IDK if this is a good error message
+            print('ERROR -- Missing symbol. Expected \'>)\' at end of map.', file=sys.stderr)
+            exit(66)
+
+        val = res[:val_end_pos]
+        res = res.removeprefix(val)
+
+        val = process_val(val)
+
+
+            
+
+def parse_delim(_input_bytes):
+    res = _input_bytes
+    if (_input_bytes.startswith(b',')):
+            res = _input_bytes.removeprefix(b',')
+
+            if (not _input_bytes[:1].isalpha()) or (not _input_bytes.startswith(b'(<')):
+                print('ERROR -- Unexpected character found after comma separator -->\',' + _input_bytes[:10], file=sys.stderr)
+                exit(66)
+    return res
+
+def main():
+    # FIXME -- not sure if this is out of scope of the project
+    if len(sys.argv) < 2:
+        print('ERROR -- Filepath argument not set. Usage: python3 main.py filepath', file=sys.stderr)
+        exit(1)
+    
+    filepath = sys.argv[1]
+
+    try:
+        with open(filepath, 'rb') as input_file:
+            input_bytes = input_file.read()
+            
+    except FileNotFoundError:
+        # FIXME -- Apparently not supposed to do this. Ask how/if we should handle FileNotFound
+        print('ERROR -- File not found. Check FILE argument.', file=sys.stderr)
+        exit(1)
+
+    # Strip leading and trailing whitespace
+    input_bytes = input_bytes.strip()
+    
+    # Check for root map
+    # FIXME -- Ask if root level map is strictly required
+    if not input_bytes.startswith(b'(<'):
+        print('ERROR -- No root level map found. Input must start with \'(<\')', file=sys.stderr)
+        exit(66)
+
+    nesting_depth = 0
+
+    # Parse loop
+    while (len(input_bytes) > 0):
+        # Parse two-character BEGIN sequence
+        temp = parse_begin(input_bytes)
+        # FIXME -- Look at this and explain it. It does work but jesus
+        if (len(temp) < len(input_bytes)):
+            input_bytes = temp
+            nesting_depth += 1
+        # if (input_bytes.startswith(b'(<')):
+        #     nesting_depth += 1
+        #     input_bytes = input_bytes.removeprefix(b'(<')
+        #     print('begin-map')
+
+        #     # Check after beginning of map
+        #     if (not input_bytes[:1].isalpha()) or (not input_bytes.startswith(b'(<')):
+        #         print('ERROR -- Unexpected character found after map start sequence -->\'(<' + input_bytes[:10], file=sys.stderr)
+        #         exit(66)
+
+        input_bytes = parse_kv(input_bytes)
+
+        # Parse comma delimiter
+        input_bytes = parse_delim(input_bytes)
+
+        # if (input_bytes.startswith(b',')):
+        #     input_bytes = input_bytes.removeprefix(b',')
+
+        #     if (not input_bytes[:1].isalpha()) or (not input_bytes.startswith(b'(<')):
+        #         print('ERROR -- Unexpected character found after comma delimiter -->\',' + input_bytes[:10], file=sys.stderr)
+        #         exit(66)
+
+        # Parse two-character END sequence
+        if (input_bytes.startswith(b'>)')):
+            nesting_depth -= 1
+            input_bytes = input_bytes.removeprefix(b'>)')
+            print('end-map')
+            
+            if (nesting_depth == 0 and len(input_bytes) > 0):
+                print('ERROR -- Symbols found after END sequence of root level map.', file=sys.stderr)
+                exit(66)
+
+    if (nesting_depth != 0):
+        print('ERROR -- Missing symbol. Expected \'>)\' at end of map.', file=sys.stderr)
+        exit(66)
+
+main()
