@@ -86,6 +86,14 @@ def parse_delim(_input_bytes):
                 exit(66)
     return res
 
+def parse_key(ib:bytes):
+    try:
+        colon_idx = ib.index(b':')
+    except ValueError:
+
+        # FIXME -- Add error message
+        exit(66)
+
 def main():
     # FIXME -- not sure if this is out of scope of the project
     if len(sys.argv) < 2:
@@ -97,7 +105,6 @@ def main():
     try:
         with open(filepath, 'rb') as input_file:
             input_bytes = input_file.read()
-            
     except FileNotFoundError:
         # FIXME -- Apparently not supposed to do this. Ask how/if we should handle FileNotFound
         print('ERROR -- File not found. Check FILE argument.', file=sys.stderr)
@@ -105,54 +112,39 @@ def main():
 
     # Strip leading and trailing whitespace
     input_bytes = input_bytes.strip()
-    
+
     # Check for root map
     # FIXME -- Ask if root level map is strictly required
-    if not input_bytes.startswith(b'(<'):
+    if input_bytes.startswith(b'(<'):
+        input_bytes = input_bytes.removeprefix(b'(<')
+    else:
         print('ERROR -- No root level map found. Input must start with \'(<\')', file=sys.stderr)
         exit(66)
 
-    nesting_depth = 0
+    nesting_depth = 0 # FIXME -- may not need this variable
+    current_map = {} # Initialized to root level map
+    parent_map_trace = [current_map]
 
     # Parse loop
     while (len(input_bytes) > 0):
-        # Parse two-character BEGIN sequence
-        temp = parse_begin(input_bytes)
-        # FIXME -- Look at this and explain it. It does work but jesus
-        if (len(temp) < len(input_bytes)):
-            input_bytes = temp
-            nesting_depth += 1
-        # if (input_bytes.startswith(b'(<')):
-        #     nesting_depth += 1
-        #     input_bytes = input_bytes.removeprefix(b'(<')
-        #     print('begin-map')
+        pass
 
-        #     # Check after beginning of map
-        #     if (not input_bytes[:1].isalpha()) or (not input_bytes.startswith(b'(<')):
-        #         print('ERROR -- Unexpected character found after map start sequence -->\'(<' + input_bytes[:10], file=sys.stderr)
-        #         exit(66)
+        # If first char of input is lower alpha
+            # Parse key and value
+            # If start-map jump to beginning of loop
+            # Else continue
+        # Else if input starts with >)
+            # Parse end-map
+        # Else ERROR
 
-        input_bytes = parse_kv(input_bytes)
+        #### Probably need to check if we're done with the input
 
-        # Parse comma delimiter
-        input_bytes = parse_delim(input_bytes)
-
-        # if (input_bytes.startswith(b',')):
-        #     input_bytes = input_bytes.removeprefix(b',')
-
-        #     if (not input_bytes[:1].isalpha()) or (not input_bytes.startswith(b'(<')):
-        #         print('ERROR -- Unexpected character found after comma delimiter -->\',' + input_bytes[:10], file=sys.stderr)
-        #         exit(66)
-
-        # Parse two-character END sequence
-        if (input_bytes.startswith(b'>)')):
-            nesting_depth -= 1
-            input_bytes = input_bytes.removeprefix(b'>)')
-            print('end-map')
-            
-            if (nesting_depth == 0 and len(input_bytes) > 0):
-                print('ERROR -- Symbols found after END sequence of root level map.', file=sys.stderr)
-                exit(66)
+        # If first char is comma
+            # Parse comma
+            # If next char is alpha jump to beginning of loop
+            # Else ERROR
+        # Else if starts with >) jump to beginning of loop
+        # Else ERROR
 
     if (nesting_depth != 0):
         print('ERROR -- Missing symbol. Expected \'>)\' at end of map.', file=sys.stderr)
