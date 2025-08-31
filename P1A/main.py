@@ -26,6 +26,7 @@ def parse_key(inp:bytes) -> tuple[bytes, bytes]:
     key = inp[:key_len]
     validate_key(key)
 
+    print(f"{key.decode()} -- ", end="")
     return key, inp[key_len+1:]
 
 def decode_num(value:bytes) -> bytes:
@@ -43,6 +44,8 @@ def decode_complex(value:bytes) -> bytes:
 
 def parse_val(inp:bytes) -> tuple[bytes, bytes]:
     if inp.startswith(BEGIN_MAP):
+        print("map -- ")
+        print("begin-map")
         return BEGIN_MAP, inp.removeprefix(BEGIN_MAP)
     try:
         value_len = re.search(rb'(,|>\))', inp).start()
@@ -53,13 +56,13 @@ def parse_val(inp:bytes) -> tuple[bytes, bytes]:
     value = inp[:value_len]
     if re.fullmatch(rb'(0|1)*', value):
         value = decode_num(value)
-        print(f"num -- {value}")
+        print(f"num -- {value.decode()}")
     elif re.fullmatch(rb'([a-zA-Z0-9 \t])*s', value):
         value = decode_simple(value)
-        print(f"string -- {value}")
+        print(f"string -- {value.decode()}")
     elif re.fullmatch(rb'([a-zA-Z]|%[0-9A-F]{2})*%[0-9A-F]{2}([a-zA-Z]|%[0-9A-F]{2})*', value):
         value = decode_complex(value)
-        print(f"string -- {value}")
+        print(f"string -- {value.decode()}")
     else:
         print(f"ERROR -- Invalid data type encoding: '{value}'", file=sys.stderr)
         exit(66)
@@ -83,6 +86,7 @@ def main():
     # Check for root map
     if input_bytes.startswith(BEGIN_MAP):
         input_bytes = input_bytes.removeprefix(BEGIN_MAP)
+        print("begin-map")
     else:
         print('ERROR -- No root level map found. Input must start with \'(<\')', file=sys.stderr)
         exit(66)
@@ -115,8 +119,13 @@ def main():
                 pass
         # Else if input starts with >)
         elif input_bytes.startswith(END_MAP):
+            print("end-map")
             input_bytes = input_bytes.removeprefix(END_MAP)
-            current_map = parent_map_stack.pop()
+            if len(parent_map_stack) == 0:
+                break
+            else:
+                current_map = parent_map_stack.pop()
+
         # Else ERROR
         else:
             print("ERROR -- Expected 'key:value' or '>)' after '(<'", file=sys.stderr)
@@ -144,8 +153,8 @@ def main():
             print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
             exit(66)
 
-    if (nesting_depth != 0):
-        print('ERROR -- Missing symbol. Expected \'>)\' at end of map.', file=sys.stderr)
+    if len(input_bytes) > 0:
+        print("ERROR -- Unexpected symbols found after end of root level map.", file=sys.stderr)
         exit(66)
 
 main()
