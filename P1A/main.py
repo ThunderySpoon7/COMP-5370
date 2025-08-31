@@ -33,14 +33,24 @@ def process_val(v:bytes):
 
     # Parse complex string
 
+def validate_key(key:bytes):
+    if not (key.islower() and key.isalpha()):
+        print(f"ERROR -- Keys must be lowercase alpha strings. Found key: '{key.decode()}'", file=sys.stderr)
+        exit(66)
+
+# Parses and removes key and ':' from inp
+# returns key, modified inp
 def parse_key(inp:bytes) -> tuple[bytes, bytes]:
-    # FIXME -- Implement
     try:
         colon_idx = inp.index(b':')
     except ValueError:
-
-        # FIXME -- Add error message
+        print("ERROR -- Expected ':' separating key and value", file=sys.stderr)
         exit(66)
+    
+    key = inp[:colon_idx]
+    validate_key(key)
+
+    return key, inp.removeprefix(key + b':')
 
 def parse_val(inp:bytes) -> tuple[bytes, bytes]:
     pass
