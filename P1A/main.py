@@ -1,4 +1,5 @@
-import sys
+import sys, re
+from urllib.parse import unquote
 
 ZERO_BYTE = 48
 ONE_BYTE = 49
@@ -7,31 +8,6 @@ LOWER_ALPHA = [i for i in range(0x61, 0x7b)]
 BEGIN_MAP = b'(<'
 END_MAP = b'>)'
 COMMA_BYTE = 44
-
-# Parse and convert base-10 value from two's compliment binary string
-def parse_num(v:bytes):
-    res = 0
-    try:
-        return str(int(v.decode(), 2) - (1 << len(v) if v[0] == ONE_BYTE else 0)).encode()
-    except ValueError:
-        print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
-        exit(66)
-
-# Process value v as a num, simple string, or complex string. 
-# Throws error if incorrectly formatted.
-def process_val(v:bytes):
-    if (v.startswith(b' ') or v.endswith(b' ')):
-        # FIXME -- Print error message
-        exit(66)
-
-    res = None
-    # Parse num
-    if (v.isdigit()):
-        return parse_num(v)
-
-    # Parse simple string
-
-    # Parse complex string
 
 def validate_key(key:bytes):
     if not (key.islower() and key.isalpha()):
@@ -42,19 +18,53 @@ def validate_key(key:bytes):
 # returns key, modified inp
 def parse_key(inp:bytes) -> tuple[bytes, bytes]:
     try:
-        colon_idx = inp.index(b':')
+        key_len = inp.index(b':')
     except ValueError:
         print("ERROR -- Expected ':' separating key and value", file=sys.stderr)
         exit(66)
     
-    key = inp[:colon_idx]
+    key = inp[:key_len]
     validate_key(key)
 
-    return key, inp.removeprefix(key + b':')
+    return key, inp[key_len+1:]
+
+def decode_num(value:bytes) -> bytes:
+    try:
+        return str(int(value.decode(), 2) - (1 << len(value) if value[0] == ONE_BYTE else 0)).encode()
+    except ValueError:
+        print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
+        exit(66)
+
+def decode_simple(value:bytes) -> bytes:
+    return value[:-1]
+
+def decode_complex(value:bytes) -> bytes:
+    return unquote(value).encode()
 
 def parse_val(inp:bytes) -> tuple[bytes, bytes]:
-    pass
-    # FIXME -- Implement
+    if inp.startswith(BEGIN_MAP):
+        return BEGIN_MAP, inp.removeprefix(BEGIN_MAP)
+    try:
+        value_len = re.search(rb'(,|>\))', inp).start()
+    except AttributeError:
+        print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
+        exit(66)
+
+    value = inp[:value_len]
+    if re.fullmatch(rb'(0|1)*', value):
+        value = decode_num(value)
+        print(f"num -- {value}")
+    elif re.fullmatch(rb'([a-zA-Z0-9 \t])*s', value):
+        value = decode_simple(value)
+        print(f"string -- {value}")
+    elif re.fullmatch(rb'([a-zA-Z]|%[0-9A-F]{2})*%[0-9A-F]{2}([a-zA-Z]|%[0-9A-F]{2})*', value):
+        value = decode_complex(value)
+        print(f"string -- {value}")
+    else:
+        print(f"ERROR -- Invalid data type encoding: '{value}'", file=sys.stderr)
+        exit(66)
+
+    return value, inp[value_len:]
 
 def main():
     filepath = sys.argv[1]
@@ -130,7 +140,7 @@ def main():
         elif input_bytes.startswith(END_MAP):
             continue
         # Else ERROR
-        else:
+        else: # FIXME -- This error message may be redundant with parse_val()
             print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
             exit(66)
 
