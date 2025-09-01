@@ -41,8 +41,7 @@ def decode_complex(value:str) -> str:
 
 def parse_val(inp:str) -> tuple[str, str]:
     if inp.startswith(BEGIN_MAP):
-        print("map -- ")
-        print("begin-map")
+        print("map -- \nbegin-map")
         return BEGIN_MAP, inp.removeprefix(BEGIN_MAP)
     try:
         value_len = re.search(r'(,|>\))', inp).start()
@@ -50,15 +49,14 @@ def parse_val(inp:str) -> tuple[str, str]:
         print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
         exit(66)
 
-    value = inp[:value_len]
     if re.fullmatch(r'(0|1)*', value):
-        value = decode_num(value)
+        value = decode_num(inp[:value_len])
         print(f"num -- {value}")
     elif re.fullmatch(r'([a-zA-Z0-9 \t])*s', value):
-        value = decode_simple(value)
+        value = decode_simple(inp[:value_len])
         print(f"string -- {value}")
     elif re.fullmatch(r'([a-zA-Z]|%[0-9A-F]{2})*%[0-9A-F]{2}([a-zA-Z]|%[0-9A-F]{2})*', value):
-        value = decode_complex(value)
+        value = decode_complex(inp[:value_len])
         print(f"string -- {value}")
     else:
         print(f"ERROR -- Invalid data type encoding: '{value}'", file=sys.stderr)
@@ -70,28 +68,25 @@ def main():
     filepath = sys.argv[1]
     with open(filepath, 'r') as input_file:
         input_str = input_file.read()
-
-    # Strip leading and trailing whitespace
     input_str = input_str.strip()
 
-    # Check for root map
-    if input_str.startswith(BEGIN_MAP):
+    # Check for root level map
+    if input_str.startswith(BEGIN_MAP) and input_str.endswith(END_MAP):
         input_str = input_str.removeprefix(BEGIN_MAP)
         print("begin-map")
     else:
-        print('ERROR -- No root level map found. Input must start with \'(<\')', file=sys.stderr)
+        print("ERROR -- No root level map found. Maps must be a pair of '(<' and '>)'", file=sys.stderr)
         exit(66)
 
     current_map = {} # Initialized to root level map
     parent_map_stack = []
 
     while (len(input_str) > 0):
-        # If first char of input is lower alpha
         if input_str[0] in LOWER_ALPHA:
             # Parse key and value
             next_key, input_str = parse_key(input_str)
             if next_key in current_map:
-                print("ERROR -- Duplicate key found in map: " + next_key)
+                print("ERROR -- Duplicate key found in map: " + next_key, file=sys.stderr)
                 exit(66)
 
             next_val, input_str = parse_val(input_str)
