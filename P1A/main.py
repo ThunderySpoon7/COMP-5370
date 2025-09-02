@@ -4,7 +4,6 @@ from urllib.parse import unquote
 LOWER_ALPHA = [chr(i) for i in range(0x61, 0x7b)]
 BEGIN_MAP = "(<"
 END_MAP = ">)"
-COMMA_BYTE = ","
 
 def validate_key(key:str):
     if not (key.islower() and key.isalpha()):
@@ -28,7 +27,7 @@ def parse_key(inp:str) -> tuple[str, str]:
 
 def decode_num(value:str) -> str:
     try:
-        return str(int(value, 2) - (1 << len(value) if value[0] == "1" else 0))
+        return str(int(value, 2) - ((1 << len(value)) if value[0] == "1" else 0))
     except ValueError:
         print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
         exit(66)
@@ -71,7 +70,7 @@ def main():
     input_str = input_str.strip()
 
     # Check for root level map
-    if input_str.startswith(BEGIN_MAP) and input_str.endswith(END_MAP):
+    if input_str.startswith(BEGIN_MAP) and len(input_str) > 2:
         input_str = input_str.removeprefix(BEGIN_MAP)
         print("begin-map")
     else:
@@ -109,14 +108,13 @@ def main():
             exit(66)
 
         # If first char is comma
-        if input_str[0] == COMMA_BYTE:
+        if input_str.startswith(','):
             # Parse comma
             input_str = input_str.removeprefix(',')
 
             # If next char is alpha jump to beginning of loop
             if input_str[0] in LOWER_ALPHA:
                 continue
-            # Else ERROR
             else:
                 print("ERROR -- Expected key name in lowercase alpha after ','", file=sys.stderr)
                 exit(66)
