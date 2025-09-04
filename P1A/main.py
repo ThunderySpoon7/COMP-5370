@@ -5,10 +5,9 @@ LOWER_ALPHA = [chr(i) for i in range(0x61, 0x7b)]
 BEGIN_MAP = "(<"
 END_MAP = ">)"
 
-def validate_key(key:str):
-    if not (key.islower() and key.isalpha()):
-        print(f"ERROR -- Keys must be lowercase alpha strings. Found key: '{key}'", file=sys.stderr)
-        exit(66)
+def error(msg:str):
+    print(f"ERROR -- {msg}", file=sys.stderr)
+    exit(66)
 
 # Parses and removes key and ':' from inp
 # returns key, modified inp
@@ -16,11 +15,11 @@ def parse_key(inp:str) -> tuple[str, str]:
     try:
         key_len = inp.index(':')
     except ValueError:
-        print("ERROR -- Expected ':' separating key and value", file=sys.stderr)
-        exit(66)
+        error("Expected ':' separating key and value")
     
     key = inp[:key_len]
-    validate_key(key)
+    if not (key.islower() and key.isalpha()):
+            error(f"Keys must be lowercase alpha strings. Found key: '{key}'")
 
     print(f"{key} -- ", end="")
     return key, inp[key_len+1:]
@@ -29,8 +28,7 @@ def decode_num(value:str) -> str:
     try:
         return str(int(value, 2) - ((1 << len(value)) if value[0] == "1" else 0))
     except ValueError:
-        print('ERROR -- Type num value must be represented in twos compliment binary', file=sys.stderr)
-        exit(66)
+        error("Type num value must be represented in twos compliment binary")
 
 def decode_simple(value:str) -> str:
     return value[:-1]
@@ -45,8 +43,7 @@ def parse_val(inp:str) -> tuple[str, str]:
     try:
         value_len = re.search(r'(,|>\))', inp).start()
     except AttributeError:
-        print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
-        exit(66)
+        error("Expected ',' or '>)' after 'key:value'")
 
     if re.fullmatch(r'(0|1)*', value):
         value = decode_num(inp[:value_len])
@@ -58,24 +55,28 @@ def parse_val(inp:str) -> tuple[str, str]:
         value = decode_complex(inp[:value_len])
         print(f"string -- {value}")
     else:
-        print(f"ERROR -- Invalid data type encoding: '{value}'", file=sys.stderr)
-        exit(66)
+        error("Invalid data type encoding: '{value}'")
 
     return value, inp[value_len:]
 
 def main():
-    filepath = sys.argv[1]
-    with open(filepath, 'r') as input_file:
-        input_str = input_file.read()
-    input_str = input_str.strip()
+    if len(sys.argv) < 2:
+        error("No input file provided to command line input")
 
+    filepath = sys.argv[1]
+    try:
+        with open(filepath, 'r') as input_file:
+            input_str = input_file.read()
+    except FileNotFoundError:
+        error(f"FileNotFoundError No such file or directory: '{filepath}'")
+
+    input_str = input_str.strip()
     # Check for root level map
     if input_str.startswith(BEGIN_MAP) and len(input_str) > 2:
         input_str = input_str.removeprefix(BEGIN_MAP)
         print("begin-map")
     else:
-        print("ERROR -- No root level map found. Maps must be a pair of '(<' and '>)'", file=sys.stderr)
-        exit(66)
+        error("No root level map found. Maps must be a pair of '(<' and '>)'")
 
     current_map = {} # Initialized to root level map
     parent_map_stack = []
@@ -85,8 +86,7 @@ def main():
             # Parse key and value
             next_key, input_str = parse_key(input_str)
             if next_key in current_map:
-                print("ERROR -- Duplicate key found in map: " + next_key, file=sys.stderr)
-                exit(66)
+                error("Duplicate key found in map: " + next_key)
 
             next_val, input_str = parse_val(input_str)
             current_map[next_key] = next_val
@@ -104,8 +104,7 @@ def main():
             else:
                 current_map = parent_map_stack.pop()
         else:
-            print("ERROR -- Expected 'key:value' or '>)' after '(<'", file=sys.stderr)
-            exit(66)
+            error("Expected 'key:value' or '>)' after '(<'")
 
         # If first char is comma
         if input_str.startswith(','):
@@ -116,21 +115,17 @@ def main():
             if input_str[0] in LOWER_ALPHA:
                 continue
             else:
-                print("ERROR -- Expected key name in lowercase alpha after ','", file=sys.stderr)
-                exit(66)
+                error("Expected key name in lowercase alpha after ','")
         # Else if starts with >) jump to beginning of loop
         elif input_str.startswith(END_MAP):
             continue
         # Else ERROR
         else: # FIXME -- This error message may be redundant with parse_val()
-            print("ERROR -- Expected ',' or '>)' after 'key:value'", file=sys.stderr)
-            exit(66)
+            error("Expected ',' or '>)' after 'key:value'")
 
     if len(input_str) > 0:
-        print("ERROR -- Unexpected symbols found after end of root level map.", file=sys.stderr)
-        exit(66)
+        error("Unexpected symbols found after end of root level map.")
     if len(parent_map_stack) > 0:
-        print("ERROR -- At least one '>)' missing at end of input", file=sys.stderr)
-        exit(66)
+        error("At least one '>)' missing at end of input")
 
 main()
