@@ -5,6 +5,7 @@ LOWER_ALPHA = [chr(i) for i in range(0x61, 0x7b)]
 BEGIN_MAP = "(<"
 END_MAP = ">)"
 
+# Prints msg to stderr and exits with code 66
 def error(msg:str):
     print(f"ERROR -- {msg}", file=sys.stderr)
     exit(66)
@@ -36,6 +37,7 @@ def decode_simple(value:str) -> str:
 def decode_complex(value:str) -> str:
     return unquote(value)
 
+# Parses value from beginning of input string
 def parse_val(inp:str) -> tuple[str, str]:
     if inp.startswith(BEGIN_MAP):
         print("map -- \nbegin-map")
@@ -64,10 +66,12 @@ def parse_val(inp:str) -> tuple[str, str]:
     return decoded_value, inp[value_len:]
 
 def main():
+    # Check if command line input was provided
     if len(sys.argv) < 2:
         error("No input file provided to command line input")
 
     filepath = sys.argv[1]
+    # Check if file exists
     try:
         with open(filepath, 'r') as input_file:
             input_str = input_file.read()
@@ -83,8 +87,9 @@ def main():
         error("No root level map found. Maps must be a pair of '(<' and '>)'")
 
     current_map = {} # Initialized to root level map
-    parent_map_stack = []
+    parent_map_stack = [] # Keeps track of parent maps
 
+    # Main parsing loop
     while (len(input_str) > 0):
         if input_str[0] in LOWER_ALPHA:
             # Parse key and value
