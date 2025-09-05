@@ -28,7 +28,7 @@ def decode_num(value:str) -> str:
     try:
         return str(int(value, 2) - ((1 << len(value)) if value[0] == "1" else 0))
     except ValueError:
-        error("Type num value must be represented in twos compliment binary")
+        error("Type num value must be expressed in two's complement binary and must not exceed 14,279 bits")
 
 def decode_simple(value:str) -> str:
     return value[:-1]
@@ -45,19 +45,23 @@ def parse_val(inp:str) -> tuple[str, str]:
     except AttributeError:
         error("Expected ',' or '>)' after 'key:value'")
 
+    value = inp[:value_len]
+    # Check if num
     if re.fullmatch(r'(0|1)*', value):
-        value = decode_num(inp[:value_len])
-        print(f"num -- {value}")
+        decoded_value = decode_num(value)
+        print(f"num -- {decoded_value}")
+    # Check if simple string
     elif re.fullmatch(r'([a-zA-Z0-9 \t])*s', value):
-        value = decode_simple(inp[:value_len])
-        print(f"string -- {value}")
+        decoded_value = decode_simple(value)
+        print(f"string -- {decoded_value}")
+    # Check if complex string
     elif re.fullmatch(r'([a-zA-Z]|%[0-9A-F]{2})*%[0-9A-F]{2}([a-zA-Z]|%[0-9A-F]{2})*', value):
-        value = decode_complex(inp[:value_len])
-        print(f"string -- {value}")
+        decoded_value = decode_complex(value)
+        print(f"string -- {decoded_value}")
     else:
         error("Invalid data type encoding: '{value}'")
 
-    return value, inp[value_len:]
+    return decoded_value, inp[value_len:]
 
 def main():
     if len(sys.argv) < 2:
