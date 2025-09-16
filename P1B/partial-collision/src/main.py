@@ -4,7 +4,7 @@ import base64
 
 PREFIX = b"nab0063@auburn.edu"
 SUFFIX_LENGTH = 32 - len(PREFIX)
-TRAIL_THRESH = 3
+TRAIL_THRESH = 4
 
 def get_random_suffixes():
     return random.randbytes(SUFFIX_LENGTH), random.randbytes(SUFFIX_LENGTH)
