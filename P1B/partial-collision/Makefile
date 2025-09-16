@@ -1,5 +1,5 @@
 PI = python3
-MAIN = main.py
+MAIN = src/main.py
 
 .PHONY:
 	build
@@ -9,4 +9,4 @@ build:
 	@exit 0
 
 run:
-	@$(PI) $(MAIN) $(FILE)
+	@$(PI) $(MAIN)
