@@ -1,11 +1,10 @@
 from hashlib import sha256
 import random
 import base64
-import sys # FIXME -- Remove
 
 PREFIX = b"nab0063@auburn.edu"
 SUFFIX_LENGTH = 32 - len(PREFIX)
-TRAIL_THRESH = 2
+TRAIL_THRESH = 4
 
 def get_random_suffix() -> bytes:
     return random.randbytes(SUFFIX_LENGTH)
@@ -28,25 +27,14 @@ def write_to_file(dest: str, output: str) -> None:
         outfile.write(output)
 
 def main():
-    match sys.argv[1]:
-        case 1:
-            while True:
-                inp1, inp2 = get_random_input(), get_random_input()
-                dig1, dig2 = sha256(inp1).hexdigest(), sha256(inp2).hexdigest()
-
-                if validate_partial_collision(dig1, dig2) and validate_trail_pattern(dig1):
-                    break
-        case 2:
-            while True:
-                inp1 = get_random_input()
-                dig1 = sha256(inp1).hexdigest()
-
-                if validate_trail_pattern(dig1):
-                    inp2 = get_random_input()
-                    dig2 = sha256(inp2).hexdigest()
-
-                    if validate_partial_collision(dig1, dig2):
-                        break
+    while True:
+        inp1 = get_random_input()
+        dig1 = sha256(inp1).hexdigest()
+        if validate_trail_pattern(dig1): break
+    while True:
+        inp2 = get_random_input()
+        dig2 = sha256(inp2).hexdigest()
+        if validate_partial_collision(dig1, dig2): break
         
     print(f"INPUT 1 -- {bytes_to_b64(inp1)}")
     print(f"INPUT 2 -- {bytes_to_b64(inp2)}")
