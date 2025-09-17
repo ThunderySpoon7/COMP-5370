@@ -1,10 +1,13 @@
 import subprocess
 import time
 import sys
+import src.main as main
 
 TIMEOUT = 12 * 60 * 60
 
-print("Starting Program...\n")
+print(f"TRAIL_THRESH = {main.TRAIL_THRESH}")
+print("Starting Program...")
+print()
 
 start_time = time.perf_counter_ns()
 
@@ -22,6 +25,10 @@ elapsed_time = (time.perf_counter_ns() - start_time) / 1_000_000
 s, ms = divmod(elapsed_time, 1000)
 m, s = divmod(s, 60)
 h, m = divmod(m, 60)
+
+if not res.stdout:
+    print("ERROR -- Program exited incorrectly")
+    exit(res.returncode)
 
 print(res.stdout.decode())
 print(f"Done. Elapsed Time: {int(h):d}:{int(m):02d}:{int(s):02d}.{int(ms):03d}")
