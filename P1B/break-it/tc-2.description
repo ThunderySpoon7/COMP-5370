@@ -1,0 +1,1 @@
+Because the nosj specification does not prohibit empty simple-string values, the rejection case at lines 102 and 103 should be removed.

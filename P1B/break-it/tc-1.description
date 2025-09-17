@@ -1,0 +1,1 @@
+To mitigate this issue, num values can be parsed incrementally using divmod() with a modulus m = 10**k for some k < sys.get_int_max_str_digits().
